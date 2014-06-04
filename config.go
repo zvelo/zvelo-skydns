@@ -37,6 +37,8 @@ type Config struct {
 	Ttl uint32 `json:"ttl,omitempty"`
 	// Minimum TTL, in seconds, for NXDOMAIN responses. Defaults to 300.
 	MinTtl uint32 `json:"min_ttl,omitempty"`
+	// Discover when true, will watch /v2/machine and pick up any changes
+	Discover bool `json:"-"`
 
 	// DNSSEC key material
 	PubKey          *dns.DNSKEY    `json:"-"`

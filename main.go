@@ -47,6 +47,7 @@ func init() {
 	flag.StringVar(&tlspem, "tls-pem", "", "X509 Certificate")
 	flag.DurationVar(&config.ReadTimeout, "rtimeout", 2*time.Second, "read timeout")
 	flag.BoolVar(&config.RoundRobin, "round-robin", true, "round robin A/AAAA replies")
+	flag.BoolVar(&config.Discover, "discover", false, "discover new machines running etcd")
 	// TTl
 	// Minttl
 	flag.StringVar(&config.Hostmaster, "hostmaster", "hostmaster@skydns.local.", "hostmaster email address to use")
