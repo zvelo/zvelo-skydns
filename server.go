@@ -25,9 +25,9 @@ type server struct {
 	group  *sync.WaitGroup
 }
 
-// Newserver returns a new server.
-func NewServer(config *Config, client *etcd.Client) *server {
-	return &server{client: client, config: config, group: new(sync.WaitGroup)}
+// New returns a new server.
+func New(config *Config) *server {
+	return &server{config: config, group: new(sync.WaitGroup)}
 }
 
 // Run is a blocking operation that starts the server listening on the DNS ports.

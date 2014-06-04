@@ -10,8 +10,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/coreos/go-etcd/etcd"
 )
 
 var (
@@ -22,6 +20,7 @@ var (
 	config      = &Config{ReadTimeout: 0, Domain: "", DnsAddr: "", DNSSEC: ""}
 	nameserver  = ""
 	machine     = ""
+	discover    = false
 )
 
 func init() {
@@ -47,32 +46,10 @@ func init() {
 	flag.StringVar(&tlspem, "tls-pem", "", "X509 Certificate")
 	flag.DurationVar(&config.ReadTimeout, "rtimeout", 2*time.Second, "read timeout")
 	flag.BoolVar(&config.RoundRobin, "round-robin", true, "round robin A/AAAA replies")
-	flag.BoolVar(&config.Discover, "discover", false, "discover new machines running etcd")
+	flag.BoolVar(&discover, "discover", false, "discover new machines running etcd by querying /v2/machines on startup")
 	// TTl
 	// Minttl
 	flag.StringVar(&config.Hostmaster, "hostmaster", "hostmaster@skydns.local.", "hostmaster email address to use")
-}
-
-func newClient() (client *etcd.Client) {
-	// set default if not specified in env
-	if len(machines) == 1 && machines[0] == "" {
-		machines[0] = "http://127.0.0.1:4001"
-
-	}
-	// override if we have a commandline flag as well
-	if machine != "" {
-		machines = strings.Split(machine, ",")	
-	}
-	if strings.HasPrefix(machines[0], "https://") {
-		var err error
-		if client, err = etcd.NewTLSClient(machines, tlspem, tlskey, ""); err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		client = etcd.NewClient(machines)
-	}
-	client.SyncCluster()
-	return client
 }
 
 func main() {
@@ -85,8 +62,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	s := NewServer(config, client)
-
+	s := New(config)
+	s.client = client
+	if discover {
+		s.updateClient()
+	}
 	statsCollect()
 
 	if err := s.Run(); err != nil {
