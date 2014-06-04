@@ -38,20 +38,20 @@ func newClient() (client *etcd.Client) {
 // in v2/machines.
 func (s *server) updateClient() {
 	machines := make([]string, 0)
-	n, err := s.client.Get("/machines", false, false)
+	n, err := s.client.Get("v2/machines", false, false)
 	if err != nil {
-		s.config.log.Info("could not read /machines from etcd, keeping old ones", err)
+		s.config.log.Info("could not read /machines from etcd, keeping old: ", err)
 		return
 	}
 	if err := json.Unmarshal([]byte(n.Node.Value), &machines); err != nil {
-		s.config.log.Info("could not read /machines from etcd, keeping old ones", err)
+		s.config.log.Infof("failed to parse json: %s", err.Error())
 		return
 	}
 	var client *etcd.Client
 	if strings.HasPrefix(machines[0], "https://") {
 		// First one is https, assume they all have.
 		if client, err = etcd.NewTLSClient(machines, tlspem, tlskey, ""); err != nil {
-			s.config.log.Info("could not connect to new etcd machines, keeping old ones", err)
+			s.config.log.Info("could not connect to new etcd machines, keeping old: ", err)
 			return
 		}
 	}

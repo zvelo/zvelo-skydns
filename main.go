@@ -68,7 +68,6 @@ func main() {
 		s.updateClient()
 	}
 	statsCollect()
-
 	if err := s.Run(); err != nil {
 		log.Fatal(err)
 	}
