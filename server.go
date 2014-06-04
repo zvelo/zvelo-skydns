@@ -20,6 +20,7 @@ import (
 )
 
 type server struct {
+	sync.RWMutex // used for protecting client
 	client *etcd.Client
 	config *Config
 	group  *sync.WaitGroup
@@ -142,6 +143,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 			}
 			return
 		}
+		s.RLock()
 		for i, c := range s.client.GetCluster() {
 			u, e := url.Parse(c)
 			if e != nil {
@@ -163,6 +165,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 				m.Answer = append(m.Answer, serv.NewAAAA(q.Name, ip.To16()))
 			}
 		}
+		s.RUnlock()
 		if len(m.Answer) > 0 {
 			return
 		}
@@ -292,7 +295,9 @@ func (s *server) ServeDNSReverse(w dns.ResponseWriter, req *dns.Msg) {
 func (s *server) AddressRecords(q dns.Question, previousRecords []dns.RR) (records []dns.RR, err error) {
 	name := strings.ToLower(q.Name)
 	path, star := Path(name)
+	s.RLock()
 	r, err := s.client.Get(path, false, true)
+	s.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +383,9 @@ func (s *server) AddressRecords(q dns.Question, previousRecords []dns.RR) (recor
 func (s *server) SRVRecords(q dns.Question) (records []dns.RR, extra []dns.RR, err error) {
 	name := strings.ToLower(q.Name)
 	path, star := Path(name)
+	s.RLock()
 	r, err := s.client.Get(path, false, true)
+	s.RUnlock()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -442,7 +449,7 @@ func (s *server) SRVRecords(q dns.Question) (records []dns.RR, extra []dns.RR, e
 		ip := net.ParseIP(serv.Host)
 		switch {
 		case ip == nil:
-			records = append(records, serv.NewSRV(q.Name,weight))
+			records = append(records, serv.NewSRV(q.Name, weight))
 		case ip.To4() != nil:
 			serv.Host = Domain(serv.key) // TODO(miek): ugly
 			records = append(records, serv.NewSRV(q.Name, weight))
@@ -459,7 +466,9 @@ func (s *server) SRVRecords(q dns.Question) (records []dns.RR, extra []dns.RR, e
 func (s *server) CNAMERecords(q dns.Question) (records []dns.RR, err error) {
 	name := strings.ToLower(q.Name)
 	path, _ := Path(name) // no wildcards here
+	s.RLock()
 	r, err := s.client.Get(path, false, true)
+	s.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -486,7 +495,9 @@ func (s *server) PTRRecords(q dns.Question) (records []dns.RR, err error) {
 	if star {
 		return nil, fmt.Errorf("reverse can not contain wildcards")
 	}
+	s.RLock()
 	r, err := s.client.Get(path, false, false)
+	s.RUnlock()
 	if err != nil {
 		// if server has a forward, forward the query
 		return nil, err
