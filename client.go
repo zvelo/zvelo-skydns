@@ -6,8 +6,8 @@ package main
 
 import (
 	"log"
-	"strings"
 	"net/url"
+	"strings"
 
 	"github.com/coreos/go-etcd/etcd"
 )

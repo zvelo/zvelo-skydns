@@ -71,7 +71,7 @@ func main() {
 		go s.client.Watch("/_etcd/machines/", 0, true, recv, nil)
 		for {
 			select {
-			case n := <- recv:
+			case n := <-recv:
 				s.updateClient(n)
 			}
 		}

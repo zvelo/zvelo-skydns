@@ -21,9 +21,9 @@ import (
 
 type server struct {
 	sync.RWMutex // used for protecting client
-	client *etcd.Client
-	config *Config
-	group  *sync.WaitGroup
+	client       *etcd.Client
+	config       *Config
+	group        *sync.WaitGroup
 }
 
 // New returns a new server.
