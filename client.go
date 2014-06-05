@@ -6,6 +6,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 
@@ -37,27 +38,60 @@ func newClient() (client *etcd.Client) {
 // updateClient updates the client with the machines found
 // in v2/machines.
 func (s *server) updateClient() {
-	machines := make([]string, 0)
-	n, err := s.client.Get("/v2/machines", false, false)
+	machines, err := getMachines(s.client)
 	if err != nil {
-		s.config.log.Info("could not read /machines from etcd, keeping old: ", err)
+		s.config.log.Infof("could not get new etcd machines, keeping old: %s", err.Error())
 		return
 	}
-	if err = json.Unmarshal([]byte(n.Node.Value), &machines); err != nil {
-		s.config.log.Infof("failed to parse json: %s", err.Error())
-		return
-	}
-	var client *etcd.Client
-	if strings.HasPrefix(machines[0], "https://") {
-		// First one is https, assume they all have.
-		if client, err = etcd.NewTLSClient(machines, tlspem, tlskey, ""); err != nil {
-			s.config.log.Info("could not connect to new etcd machines, keeping old: ", err)
-			return
+	/*
 		}
+		var client *etcd.Client
+		if strings.HasPrefix(machines[0], "https://") {
+			// First one is https, assume they all have.
+			if client, err = etcd.NewTLSClient(machines, tlspem, tlskey, ""); err != nil {
+				s.config.log.Infof("could not connect to new etcd machines, keeping old: %s", err.Error())
+				return
+			}
+		}
+		client = etcd.NewClient(machines)
+		client.SyncCluster()
+		s.Lock()
+		s.client = client
+		s.Unlock()
+	*/
+	println(machines)
+}
+
+// getMachine get a list of the machines from Etcd.
+func getMachines(c *etcd.Client) ([]string, error) {
+	p := "/machines"
+	px := []string{}
+	// Can not access the default consitency used in the client
+	//if c.config.Consistency == etcd.STRONG_CONSISTENCY {
+	//	options["consistent"] = true
+	//}
+	//
+	//str, err := options.toParameters(etcd.VALID_GET_OPTIONS)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//p += str
+
+	println("HIER")
+	req := etcd.NewRawRequest("GET", p, nil, nil)
+	raw, err := c.SendRequest(req)
+	if err != nil {
+		println("RETURN")
+		return nil, err
 	}
-	client = etcd.NewClient(machines)
-	client.SyncCluster()
-	s.Lock()
-	s.client = client
-	s.Unlock()
+	fmt.Printf("%s\n", raw)
+	resp, err := raw.Unmarshal()
+	if err != nil {
+		println("RETURN2")
+		return nil, err
+	}
+	if err = json.Unmarshal([]byte(resp.Node.Value), &px); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
