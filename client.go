@@ -5,10 +5,9 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"strings"
+	"net/url"
 
 	"github.com/coreos/go-etcd/etcd"
 )
@@ -35,63 +34,33 @@ func newClient() (client *etcd.Client) {
 	return client
 }
 
-// updateClient updates the client with the machines found
-// in v2/machines.
+// updateClient updates the client with the machines found in v2/_etcd/machines.
 func (s *server) updateClient() {
-	machines, err := getMachines(s.client)
+	resp, err := s.client.Get("/_etcd/machines/", false, true)
 	if err != nil {
 		s.config.log.Infof("could not get new etcd machines, keeping old: %s", err.Error())
 		return
 	}
-	/*
+	machine := make([]string, 0)
+	for _, m := range resp.Node.Nodes {
+		u, e := url.Parse(m.Value)
+		if e != nil {
+			continue
 		}
-		var client *etcd.Client
-		if strings.HasPrefix(machines[0], "https://") {
-			// First one is https, assume they all have.
-			if client, err = etcd.NewTLSClient(machines, tlspem, tlskey, ""); err != nil {
-				s.config.log.Infof("could not connect to new etcd machines, keeping old: %s", err.Error())
-				return
-			}
+		// etcd=bla&raft=bliep
+		// TODO(miek): surely there is a better way to do this
+		ms := strings.Split(u.String(), "&")
+		if len(ms) == 0 {
+			continue
 		}
-		client = etcd.NewClient(machines)
-		client.SyncCluster()
-		s.Lock()
-		s.client = client
-		s.Unlock()
-	*/
-	println(machines)
-}
-
-// getMachine get a list of the machines from Etcd.
-func getMachines(c *etcd.Client) ([]string, error) {
-	p := "/machines"
-	px := []string{}
-	// Can not access the default consitency used in the client
-	//if c.config.Consistency == etcd.STRONG_CONSISTENCY {
-	//	options["consistent"] = true
-	//}
-	//
-	//str, err := options.toParameters(etcd.VALID_GET_OPTIONS)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//p += str
-
-	println("HIER")
-	req := etcd.NewRawRequest("GET", p, nil, nil)
-	raw, err := c.SendRequest(req)
-	if err != nil {
-		println("RETURN")
-		return nil, err
+		if len(ms[0]) < 5 {
+			continue
+		}
+		machine = append(machine, ms[0][5:])
 	}
-	fmt.Printf("%s\n", raw)
-	resp, err := raw.Unmarshal()
-	if err != nil {
-		println("RETURN2")
-		return nil, err
-	}
-	if err = json.Unmarshal([]byte(resp.Node.Value), &px); err != nil {
-		return nil, err
-	}
-	return nil, nil
+	s.config.log.Infof("setting new etcd cluster to %v", machines)
+	s.Lock()
+	s.client.SetCluster(machines) // TODO(miek): return value
+	s.client.SyncCluster()
+	s.Unlock()
 }
