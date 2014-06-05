@@ -35,12 +35,7 @@ func newClient() (client *etcd.Client) {
 }
 
 // updateClient updates the client with the machines found in v2/_etcd/machines.
-func (s *server) updateClient() {
-	resp, err := s.client.Get("/_etcd/machines/", false, true)
-	if err != nil {
-		s.config.log.Infof("could not get new etcd machines, keeping old: %s", err.Error())
-		return
-	}
+func (s *server) updateClient(resp *etcd.Response) {
 	machine := make([]string, 0)
 	for _, m := range resp.Node.Nodes {
 		u, e := url.Parse(m.Value)

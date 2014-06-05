@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/coreos/go-etcd/etcd"
 )
 
 var (
@@ -65,7 +67,14 @@ func main() {
 	s := New(config)
 	s.client = client
 	if discover {
-		s.updateClient()
+		recv := make(chan *etcd.Response)
+		go s.client.Watch("/_etcd/machines/", 0, true, recv, nil)
+		for {
+			select {
+			case n := <- recv:
+				s.updateClient(n)
+			}
+		}
 	}
 	statsCollect()
 	if err := s.Run(); err != nil {
