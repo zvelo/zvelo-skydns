@@ -86,6 +86,7 @@ func setDefaults(config *Config) error {
 	}
 	// People probably don't know that SOA's email addresses cannot
 	// contain @-signs, replace them with dots
+	// TODO(miek): the actual conversion is more complicated, i.e. dots on the left side.
 	config.Hostmaster = dns.Fqdn(strings.Replace(config.Hostmaster, "@", ".", -1))
 	if config.MinTtl == 0 {
 		config.MinTtl = 60
