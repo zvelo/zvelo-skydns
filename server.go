@@ -44,7 +44,15 @@ func NewServer(config *Config, client *etcd.Client) *server {
 // Run is a blocking operation that starts the server listening on the DNS ports.
 func (s *server) Run() error {
 	mux := dns.NewServeMux()
-	mux.Handle(".", s)
+	mux.HandleFunc(s.config.Domain, s.ServeDNS)
+	mux.HandleFunc(".", s.ServeDNSForward)
+	mux.HandleFunc("in-addr.arpa.", s.ServeDNSReverse)
+	mux.HandleFunc("ip6.arpa.", s.ServeDNSReverse)
+	mux.HandleFunc("authors.bind.", s.ServeDNSReverse)
+	mux.HandleFunc("version.bind.", s.ServeDNSReverse)
+	mux.HandleFunc("hostname.bind.", s.ServeDNSReverse)
+	mux.HandleFunc("version.server.", s.ServeDNSReverse)
+	mux.HandleFunc("id.server.", s.ServeDNSReverse)
 
 	dnsReadyMsg := func(addr, net string) {
 		if s.config.DNSSEC == "" {
@@ -192,16 +200,6 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	// If the qname is local.dns.skydns.local. and s.config.Local != "", substitute that name.
 	if s.config.Local != "" && name == s.config.localDomain {
 		name = s.config.Local
-	}
-
-	if q.Qtype == dns.TypePTR && strings.HasSuffix(name, ".in-addr.arpa.") || strings.HasSuffix(name, ".ip6.arpa.") {
-		s.ServeDNSReverse(w, req)
-		return
-	}
-
-	if q.Qclass != dns.ClassCHAOS && !strings.HasSuffix(name, s.config.Domain) {
-		s.ServeDNSForward(w, req)
-		return
 	}
 
 	defer func() {

@@ -71,6 +71,14 @@ func (s *server) ServeDNSReverse(w dns.ResponseWriter, req *dns.Msg) {
 	m.Compress = true
 	m.Authoritative = false // Set to false, because I don't know what to do wrt DNSSEC.
 	m.RecursionAvailable = true
+
+	// Only pointers.
+	if req.Question[0].Qtype != dns.TypePTR {
+		m.SetReply(req)
+		m.SetRcode(req, dns.RcodeServerFailure)
+		w.WriteMsg(m)
+	}
+
 	var err error
 	if m.Answer, err = s.PTRRecords(req.Question[0]); err == nil {
 		// TODO(miek): Reverse DNSSEC. We should sign this, but requires a key....and more
