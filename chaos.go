@@ -36,7 +36,7 @@ func (s *server) ServeCHAOS(w dns.ResponseWriter, req *dns.Msg) {
 
 	if o := req.IsEdns0(); o != nil {
 		bufsize = o.UDPSize()
-		dnssec = o.Do()
+		//dnssec = o.Do()
 	}
 	if bufsize < 512 {
 		bufsize = 512
