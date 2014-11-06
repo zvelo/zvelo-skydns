@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -131,6 +133,9 @@ func init() {
 func WatchKubernetes(eclient *etcd.Client) {
 	serviceConfig := pconfig.NewServiceConfig()
 	endpointsConfig := pconfig.NewEndpointsConfig()
+	if clientConfig.Host == "" {
+		clientConfig.Host = fmt.Sprintf("http://%s:%s", os.Getenv("KUBERNETES_RO_SERVICE_HOST"), os.Getenv("KUBERNETES_RO_SERVICE_PORT"))
+	}
 
 	if clientConfig.Host != "" {
 		log.Printf("using api calls to get Kubernetes config %v\n", clientConfig.Host)
