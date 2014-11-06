@@ -1,4 +1,8 @@
-# SkyDNS [![Build Status](https://travis-ci.org/skynetservices/skydns.png)](https://travis-ci.org/skynetservices/skydns)
+SkyDNS
+======
+
+[![wercker status](https://app.wercker.com/status/689cca1e44966df1e0b831bcc4bdfe30/s "wercker status")](https://app.wercker.com/project/bykey/689cca1e44966df1e0b831bcc4bdfe30)
+
 *Version 2.0.1c*
 
 SkyDNS is a distributed service for announcement and discovery of services built on
